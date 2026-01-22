@@ -10,6 +10,8 @@
 #include "depthai_ros_driver/dai_nodes/sensors/sensor_helpers.hpp"
 #include "depthai_ros_driver/utils.hpp"
 #include "image_transport/image_transport.hpp"
+#include "rclcpp/qos.hpp"
+#include "rmw/qos_profiles.h"
 
 namespace depthai_ros_driver {
 namespace dai_nodes {
@@ -63,19 +65,19 @@ void ImagePublisher::setup(std::shared_ptr<dai::Device> device, const utils::Img
     if(pubConfig.publishCompressed) {
         if(encConfig.profile == dai::VideoEncoderProperties::Profile::MJPEG) {
             compressedImgPub =
-                node->create_publisher<sensor_msgs::msg::CompressedImage>(pubConfig.topicName + pubConfig.compressedTopicSuffix, rclcpp::QoS(10), pubOptions);
+                node->create_publisher<sensor_msgs::msg::CompressedImage>(pubConfig.topicName + pubConfig.compressedTopicSuffix, rclcpp::SensorDataQoS(rclcpp::KeepLast(1)), pubOptions);
         } else {
             ffmpegPub = node->create_publisher<ffmpeg_image_transport_msgs::msg::FFMPEGPacket>(
-                pubConfig.topicName + pubConfig.compressedTopicSuffix, rclcpp::QoS(10), pubOptions);
+                pubConfig.topicName + pubConfig.compressedTopicSuffix, rclcpp::SensorDataQoS(rclcpp::KeepLast(1)), pubOptions);
         }
         infoPub =
-            node->create_publisher<sensor_msgs::msg::CameraInfo>(pubConfig.topicName + pubConfig.infoSuffix + "/camera_info", rclcpp::QoS(10), pubOptions);
+            node->create_publisher<sensor_msgs::msg::CameraInfo>(pubConfig.topicName + pubConfig.infoSuffix + "/camera_info", rclcpp::SensorDataQoS(rclcpp::KeepLast(1)), pubOptions);
     } else if(ipcEnabled) {
-        imgPub = node->create_publisher<sensor_msgs::msg::Image>(pubConfig.topicName + pubConfig.topicSuffix, rclcpp::QoS(10), pubOptions);
+        imgPub = node->create_publisher<sensor_msgs::msg::Image>(pubConfig.topicName + pubConfig.topicSuffix, rclcpp::SensorDataQoS(rclcpp::KeepLast(1)), pubOptions);
         infoPub =
-            node->create_publisher<sensor_msgs::msg::CameraInfo>(pubConfig.topicName + pubConfig.infoSuffix + "/camera_info", rclcpp::QoS(10), pubOptions);
+            node->create_publisher<sensor_msgs::msg::CameraInfo>(pubConfig.topicName + pubConfig.infoSuffix + "/camera_info", rclcpp::SensorDataQoS(rclcpp::KeepLast(1)), pubOptions);
     } else {
-        imgPubIT = image_transport::create_camera_publisher(node.get(), pubConfig.topicName + pubConfig.topicSuffix);
+        imgPubIT = image_transport::create_camera_publisher(node.get(), pubConfig.topicName + pubConfig.topicSuffix, rmw_qos_profile_sensor_data);
     }
     if(!synced) {
         dataQ = device->getOutputQueue(getQueueName(), pubConf.maxQSize, pubConf.qBlocking);
